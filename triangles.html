@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>a simple triangle</title>
+</head>
+<body>
+<canvas id='canvas' width="400" height="300" style="width: 400; height: 300"></canvas>
+<script type="text/javascript" src="./utils/createShader.js"></script>
+<script type="text/javascript" src="./utils/createProgram.js"></script>
+<script type="text/javascript" src="./utils/resizeCanvas.js"></script>
+<script id='vertex-shader' type="glsl">
+	attribute vec4 a_position;
+	attribute vec4 a_color;
+	varying vec4 v_color;
+	void main () {
+		gl_Position = a_position;
+		v_color = a_color;
+	}
+</script>
+<script id='fragment-shader' type="glsl">
+	precision mediump float;
+
+	varying vec4 v_color;
+	void main () {
+		gl_FragColor = v_color;
+		// gl_FragColor = vec4(1, 0, 0, 1);
+	}
+</script>
+<script type="text/javascript">
+function main () {
+	let canvas = document.querySelector('canvas')
+	let gl = canvas.getContext('webgl')
+	if (!gl) {
+		return
+	}
+	// init shader and link shaders to program
+	let vshader = createShader(gl, 'vertex')
+	let fshader = createShader(gl, 'fragment')
+	let program = createProgram(gl, vshader, fshader)
+	// init attributes data, get attributes location and bind data to location
+	let positions = [
+		0, 0,
+		0, 0.5,
+		0.5, 0
+	]
+	let colors = [
+		1, 0, 0, 1,
+		0, 1, 0, 1,
+		0, 0, 1, 1
+	]
+	let posLocation = gl.getAttribLocation(program, 'a_position')
+	let posBuffer = gl.createBuffer()
+	gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer)
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
+	let colorsLocation = gl.getAttribLocation(program, 'a_color')
+	let colorsBuffer = gl.createBuffer()
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorsBuffer)
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW)
+	// resize canvas to display size
+	resizeCanvasToDisplaySize(gl.canvas)
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	gl.useProgram(program)
+	// enable data
+	gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer)
+	gl.enableVertexAttribArray(posLocation)
+	let posPointer = {
+		size: 2,
+		type: gl.FLOAT,
+		normalize: false,
+		stride: 0,
+		offset: 0
+	}
+	gl.vertexAttribPointer(posLocation, posPointer.size, posPointer.type, posPointer.normalize, posPointer.stride, posPointer.offset)
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorsBuffer)
+	gl.enableVertexAttribArray(colorsLocation)
+	let colorsPointer = {
+		size: 4,
+		type: gl.FLOAT,
+		normalize: false,
+		stride: 0,
+		offset: 0
+	}
+	gl.vertexAttribPointer(colorsLocation, colorsPointer.size, colorsPointer.type, colorsPointer.normalize, colorsPointer.stride, colorsLocation.offset)
+	gl.drawArrays(gl.TRIANGLES, 0, 3)
+}
+main()
+</script>
+</body>
+</html>
