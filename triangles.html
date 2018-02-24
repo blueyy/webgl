@@ -4,16 +4,23 @@
 	<title>a simple triangle</title>
 </head>
 <body>
-<canvas id='canvas' width="400" height="300" style="width: 400; height: 300"></canvas>
+<canvas id='canvas' width="40" height="30" style="width: 400px; height: 300px"></canvas>
 <script type="text/javascript" src="./utils/createShader.js"></script>
 <script type="text/javascript" src="./utils/createProgram.js"></script>
 <script type="text/javascript" src="./utils/resizeCanvas.js"></script>
 <script id='vertex-shader' type="glsl">
-	attribute vec4 a_position;
+	attribute vec2 a_position;
 	attribute vec4 a_color;
+
+	uniform vec2 u_transform;
+	uniform vec2 u_rotate;
+	uniform vec2 u_scale;
+
 	varying vec4 v_color;
 	void main () {
-		gl_Position = a_position;
+		vec2 temp0 = a_position * u_scale;
+		vec2 temp1 = vec2(temp0.x * u_rotate.y + temp0.y * u_rotate.x, temp0.y * u_rotate.y - temp0.x * u_rotate.x);
+		gl_Position = vec4((temp0 + u_transform), 0, 1);
 		v_color = a_color;
 	}
 </script>
@@ -23,7 +30,6 @@
 	varying vec4 v_color;
 	void main () {
 		gl_FragColor = v_color;
-		// gl_FragColor = vec4(1, 0, 0, 1);
 	}
 </script>
 <script type="text/javascript">
@@ -48,21 +54,11 @@ function main () {
 		0, 1, 0, 1,
 		0, 0, 1, 1
 	]
-	let posLocation = gl.getAttribLocation(program, 'a_position')
-	let posBuffer = gl.createBuffer()
-	gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer)
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
-	let colorsLocation = gl.getAttribLocation(program, 'a_color')
-	let colorsBuffer = gl.createBuffer()
-	gl.bindBuffer(gl.ARRAY_BUFFER, colorsBuffer)
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW)
-	// resize canvas to display size
-	resizeCanvasToDisplaySize(gl.canvas)
-	gl.clear(gl.COLOR_BUFFER_BIT)
-	gl.useProgram(program)
-	// enable data
-	gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer)
-	gl.enableVertexAttribArray(posLocation)
+	let transform = [0.1, 0.1]
+	let rotate = [0, 1]
+	let angle = 0
+	let scale = [1, 1]
+	let step = -0.02
 	let posPointer = {
 		size: 2,
 		type: gl.FLOAT,
@@ -70,9 +66,6 @@ function main () {
 		stride: 0,
 		offset: 0
 	}
-	gl.vertexAttribPointer(posLocation, posPointer.size, posPointer.type, posPointer.normalize, posPointer.stride, posPointer.offset)
-	gl.bindBuffer(gl.ARRAY_BUFFER, colorsBuffer)
-	gl.enableVertexAttribArray(colorsLocation)
 	let colorsPointer = {
 		size: 4,
 		type: gl.FLOAT,
@@ -80,8 +73,59 @@ function main () {
 		stride: 0,
 		offset: 0
 	}
-	gl.vertexAttribPointer(colorsLocation, colorsPointer.size, colorsPointer.type, colorsPointer.normalize, colorsPointer.stride, colorsLocation.offset)
-	gl.drawArrays(gl.TRIANGLES, 0, 3)
+	let posLocation = gl.getAttribLocation(program, 'a_position')
+	let posBuffer = gl.createBuffer()
+	gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer)
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
+	let transLocation = gl.getUniformLocation(program, 'u_transform')
+	let rotateLocation = gl.getUniformLocation(program, 'u_rotate')
+	let scaleLocation = gl.getUniformLocation(program, 'u_scale')
+	let colorsLocation = gl.getAttribLocation(program, 'a_color')
+	let colorsBuffer = gl.createBuffer()
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorsBuffer)
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW)
+	animation()
+	function drawScene () {
+			// resize canvas to display size
+		resizeCanvasSize(gl)
+		gl.clear(gl.COLOR_BUFFER_BIT)
+		gl.useProgram(program)
+		// enable data
+		gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer)
+		gl.enableVertexAttribArray(posLocation)
+		gl.vertexAttribPointer(posLocation, posPointer.size, posPointer.type, posPointer.normalize, posPointer.stride, posPointer.offset)
+		gl.uniform2fv(transLocation, transform)
+		gl.uniform2fv(rotateLocation, rotate)
+		gl.uniform2fv(scaleLocation, scale)
+		gl.bindBuffer(gl.ARRAY_BUFFER, colorsBuffer)
+		gl.enableVertexAttribArray(colorsLocation)
+		gl.vertexAttribPointer(colorsLocation, colorsPointer.size, colorsPointer.type, colorsPointer.normalize, colorsPointer.stride, colorsLocation.offset)
+		gl.drawArrays(gl.TRIANGLES, 0, 3)
+	}
+	function animation () {
+		requestAnimationFrame(animation)
+		transform[0] += 0.01
+		transform[1] += 0.01
+		transform[0] >= 0.5 ? transform[0] = 0 : transform[0]
+		transform[1] >= 0.5 ? transform[1] = 0 : transform[0]
+		angle += Math.PI / 50
+		rotate[0] = Math.cos(angle)
+		rotate[1] = Math.sin(angle)
+		if (scale[0] >= 1 || scale[0] <= 0) {
+			step *= -1
+			if (scale[0] >= 1) {
+				scale[0] = 1
+				scale[1] = 1
+			}
+			if (scale[1] <= 0) {
+				scale[0] = 0
+				scale[1] = 0
+			}
+		}
+		scale[0] += step
+		scale[1] += step
+		drawScene()
+	}
 }
 main()
 </script>
